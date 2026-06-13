@@ -58,7 +58,7 @@ export default function AdminLoans() {
   const { pipeline, pending } = useAdminLoans();
   const { pending: guarantorsPending } = useAdminGuarantors();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { displayName } = useAuth();
   const toast = useToast();
 
   const [activeTab, setActiveTab] = useState<Tab>('pending');
@@ -89,7 +89,7 @@ export default function AdminLoans() {
       );
       addAuditEntry({
         timestamp: new Date().toISOString().replace('T', ' ').slice(0, 16),
-        adminUsername: user?.name ?? 'Admin',
+        adminUsername: displayName ?? 'Admin',
         actionType: 'LOAN_APPROVED',
         affectedId: loan.id,
         description: `Approved ${loan.type} ${loan.amount} for ${loan.member}`,
@@ -115,7 +115,7 @@ export default function AdminLoans() {
       );
       addAuditEntry({
         timestamp: new Date().toISOString().replace('T', ' ').slice(0, 16),
-        adminUsername: user?.name ?? 'Admin',
+        adminUsername: displayName ?? 'Admin',
         actionType: 'LOAN_REJECTED',
         affectedId: rejectTarget.id,
         description: `Rejected ${rejectTarget.type} ${rejectTarget.amount} for ${rejectTarget.member} — ${rejectReason.trim().slice(0, 80)}`,

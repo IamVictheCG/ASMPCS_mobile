@@ -47,7 +47,7 @@ function DetailSkeleton() {
 export default function MemberDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { displayName } = useAuth();
   const toast = useToast();
   const [refreshing, setRefreshing] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
@@ -82,7 +82,7 @@ export default function MemberDetailScreen() {
       );
       addAuditEntry({
         timestamp: new Date().toISOString().replace('T', ' ').slice(0, 16),
-        adminUsername: user?.name ?? 'Admin',
+        adminUsername: displayName ?? 'Admin',
         actionType: 'MEMBER_UPDATED',
         affectedId: member.id,
         description: `Updated profile for ${member.name} — dept: ${editDept}, zone: ${editZone}`,

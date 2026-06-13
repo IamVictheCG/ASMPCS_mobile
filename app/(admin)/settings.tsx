@@ -30,7 +30,7 @@ function SettingsSkeleton() {
 
 export default function AdminSettings() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { displayName } = useAuth();
   const toast = useToast();
   const [activeTab, setActiveTab] = useState<Tab>('society');
 
@@ -62,7 +62,7 @@ export default function AdminSettings() {
       queryClient.setQueryData(['admin', 'settings', 'society'], { ...soc });
       addAuditEntry({
         timestamp: new Date().toISOString().replace('T', ' ').slice(0, 16),
-        adminUsername: user?.name ?? 'Admin',
+        adminUsername: displayName ?? 'Admin',
         actionType: 'SETTINGS_SAVED',
         affectedId: 'SOCIETY_INFO',
         description: 'Updated society information — name, contact details, banking info',
@@ -83,7 +83,7 @@ export default function AdminSettings() {
       queryClient.setQueryData(['admin', 'settings', 'loan-params'], { ...lp });
       addAuditEntry({
         timestamp: new Date().toISOString().replace('T', ' ').slice(0, 16),
-        adminUsername: user?.name ?? 'Admin',
+        adminUsername: displayName ?? 'Admin',
         actionType: 'SETTINGS_SAVED',
         affectedId: 'LOAN_PARAMS',
         description: `Updated loan parameters — multiplier: ${lp.maxMultiplier}×, short-term: ${lp.shortTermRate}%, property: ${lp.propertyRate}%, car: ${lp.carRate}%`,

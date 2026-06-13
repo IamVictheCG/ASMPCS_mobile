@@ -35,7 +35,7 @@ function DetailSkeleton() {
 export default function LoanDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { displayName } = useAuth();
   const toast = useToast();
 
   const { data: loan, isLoading, isError, refetch } = useQuery<LoanDetail | null>({
@@ -64,7 +64,7 @@ export default function LoanDetailScreen() {
       );
       addAuditEntry({
         timestamp: new Date().toISOString().replace('T', ' ').slice(0, 16),
-        adminUsername: user?.name ?? 'Admin',
+        adminUsername: displayName ?? 'Admin',
         actionType: 'LOAN_APPROVED',
         affectedId: loan.id,
         description: `Approved ${loan.type} ${loan.amount} for ${loan.member}`,
@@ -93,7 +93,7 @@ export default function LoanDetailScreen() {
       );
       addAuditEntry({
         timestamp: new Date().toISOString().replace('T', ' ').slice(0, 16),
-        adminUsername: user?.name ?? 'Admin',
+        adminUsername: displayName ?? 'Admin',
         actionType: 'LOAN_REJECTED',
         affectedId: loan.id,
         description: `Rejected ${loan.type} ${loan.amount} for ${loan.member} — ${rejectReason.trim().slice(0, 80)}`,

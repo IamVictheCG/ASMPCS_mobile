@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "asmpcs-member",
+    "name": "ASMPCS",
     "slug": "asmpcs-member",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -17,7 +17,8 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.victorokechukwu.asmpcsmember"
     },
     "web": {
       "bundler": "metro",
@@ -33,10 +34,25 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ]
+      ],
+      "expo-secure-store",
+      "expo-asset",
+      "expo-image"
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "04b23819-2edb-424c-bb3d-830e4ee9849d"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/04b23819-2edb-424c-bb3d-830e4ee9849d"
     }
   }
 }

@@ -3,7 +3,7 @@ import { Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import { useDrawer } from '../context/DrawerContext';
-import { useNotifications } from '../hooks/useNotifications';
+import { useNotificationCount } from '../hooks/useNotificationCount';
 import { Colors, Fonts, Surfaces } from '../theme/tokens';
 
 interface AppTopbarProps {
@@ -33,12 +33,14 @@ function HamburgerIcon({ color }: { color: string }) {
 }
 
 export function AppTopbar({ title, portal = 'member', onNotifPress }: AppTopbarProps) {
-  const { user } = useAuth();
+  const { member, displayName } = useAuth();
+  const initials = (member?.full_name ?? displayName ?? '?')
+    .split(' ').map((p) => p[0] ?? '').join('').slice(0, 2).toUpperCase() || '??';
   const { openDrawer } = useDrawer();
-  const { data: notifications = [] } = useNotifications();
+  const { hasUnread: hasUnreadNotifs } = useNotificationCount();
   const insets = useSafeAreaInsets();
 
-  const hasUnread = portal === 'member' && notifications.some((n) => n.unread);
+  const hasUnread = portal === 'member' && hasUnreadNotifs;
   const bg = portal === 'admin' ? Surfaces.adminTopbarBg : Surfaces.topbarBg;
   const dotColor = portal === 'admin' ? Colors.red2 : Colors.gold;
   const avatarBg = portal === 'admin' ? Colors.crimson : Colors.teal;
@@ -128,7 +130,7 @@ export function AppTopbar({ title, portal = 'member', onNotifPress }: AppTopbarP
         </TouchableOpacity>
 
         {/* Avatar */}
-        {user && (
+        {initials && (
           <View
             style={{
               width: 34,
@@ -141,7 +143,7 @@ export function AppTopbar({ title, portal = 'member', onNotifPress }: AppTopbarP
             }}
           >
             <Text style={{ fontFamily: Fonts.sansSemibold, fontSize: 12, color: Colors.white }}>
-              {user.initials}
+              {initials}
             </Text>
           </View>
         )}

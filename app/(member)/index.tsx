@@ -5,15 +5,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenError } from '../../src/components/ScreenError';
 import { ChartBars } from '../../src/components/ChartBars';
 import { TransactionList } from '../../src/components/TransactionList';
+import type { Transaction } from '../../src/components/TransactionList';
 import { Card, CardBody, CardHeader } from '../../src/components/ui/Card';
 import { ProgressBar } from '../../src/components/ui/ProgressBar';
 import { SectionTitle } from '../../src/components/ui/SectionTitle';
 import { Skeleton } from '../../src/components/ui/Skeleton';
 import { StatCard } from '../../src/components/ui/StatCard';
-import { useContributionBars, useMemberStats } from '../../src/hooks/useMemberStats';
-import { useLoanStatus } from '../../src/hooks/useLoanStatus';
-import { useMemberProfile } from '../../src/hooks/useMemberProfile';
-import { useTransactions } from '../../src/hooks/useTransactions';
+import { useMemberData } from '../../src/hooks/useMemberData';
+import type { RecentContribution } from '../../src/hooks/useMemberData';
+import { useAuth } from '../../src/context/AuthContext';
 import { AppTopbar } from '../../src/navigation/AppTopbar';
 import { Colors, Fonts, FontSize } from '../../src/theme/tokens';
 
@@ -23,6 +23,33 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 function todayLabel() {
   const d = new Date();
   return `${DAYS[d.getDay()]}, ${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
+function formatNaira(amount: number): string {
+  return `₦${amount.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function contributionToTransaction(c: RecentContribution): Transaction {
+  const label = `${MONTHS[c.month - 1]} ${c.year}`;
+  const method = c.paymentMethod.replace(/_/g, ' ');
+  const date = new Date(c.createdAt).toLocaleDateString('en-GB', {
+    day: '2-digit', month: 'short', year: 'numeric',
+  });
+  return {
+    icon: '💰',
+    iconColor: 'green',
+    title: `Monthly Savings – ${label}`,
+    sub: `${method} · ${date}`,
+    amount: `+${formatNaira(c.amount)}`,
+    type: 'credit',
+  };
 }
 
 function DashboardSkeleton() {
@@ -61,40 +88,72 @@ function DashboardSkeleton() {
 }
 
 export default function MemberDashboard() {
-  const profileQuery = useMemberProfile();
-  const statsQuery = useMemberStats();
-  const barsQuery = useContributionBars();
-  const transactionsQuery = useTransactions();
-  const loanQuery = useLoanStatus();
+  const { member } = useAuth();
+  const dataQuery = useMemberData();
   const [refreshing, setRefreshing] = useState(false);
   const insets = useSafeAreaInsets();
 
-  const isLoading = profileQuery.isLoading || statsQuery.isLoading || barsQuery.isLoading || transactionsQuery.isLoading;
-  const isError = profileQuery.isError || statsQuery.isError || barsQuery.isError || transactionsQuery.isError;
-
-  const handleRetry = () => {
-    if (profileQuery.isError) profileQuery.refetch();
-    if (statsQuery.isError) statsQuery.refetch();
-    if (barsQuery.isError) barsQuery.refetch();
-    if (transactionsQuery.isError) transactionsQuery.refetch();
-    if (loanQuery.isError) loanQuery.refetch();
-  };
-
   async function onRefresh() {
     setRefreshing(true);
-    await Promise.all([
-      profileQuery.refetch(),
-      statsQuery.refetch(),
-      barsQuery.refetch(),
-      transactionsQuery.refetch(),
-      loanQuery.refetch(),
-    ]);
+    await dataQuery.refetch();
     setRefreshing(false);
   }
 
-  const recentTxns = (transactionsQuery.data ?? []).slice(0, 5);
-  const loan = loanQuery.data;
+  const d = dataQuery.data;
+  const firstName = member?.full_name?.split(' ')[0] ?? '';
   const today = todayLabel();
+
+  // Build stat cards from real data
+  const stats = d
+    ? [
+        {
+          icon: '💰',
+          value: formatNaira(d.savingsBalance),
+          label: 'Total Savings Balance',
+          change: 'Updated just now',
+          changeDir: 'up' as const,
+          variant: 'blue' as const,
+        },
+        {
+          icon: '🏦',
+          value: d.activeLoan
+            ? formatNaira(d.activeLoan.outstandingBalance)
+            : 'No active loan',
+          label: 'Active Loan Balance',
+          change: d.activeLoan ? `${d.activeLoan.loanType}` : 'Clear',
+          changeDir: d.activeLoan ? ('down' as const) : ('neutral' as const),
+          variant: 'gold' as const,
+        },
+        {
+          icon: '📈',
+          value: d.dividendEarned != null
+            ? formatNaira(d.dividendEarned)
+            : 'Pending computation',
+          label: `Dividend Earned (${new Date().getFullYear()})`,
+          change: d.dividendEarned != null ? 'Current year' : 'Not yet declared',
+          changeDir: 'up' as const,
+          variant: 'green' as const,
+        },
+        {
+          icon: '🛒',
+          value: d.commodityCredit > 0 ? formatNaira(d.commodityCredit) : '₦0.00',
+          label: 'Commodity Credit Used',
+          change: 'Pending orders',
+          changeDir: 'up' as const,
+          variant: 'red' as const,
+        },
+      ]
+    : [];
+
+  const loan = d?.activeLoan ?? null;
+  const percentRepaid = loan && loan.totalRepayable > 0
+    ? Math.round((loan.amountRepaid / loan.totalRepayable) * 100)
+    : 0;
+  const monthsRemaining = loan && loan.monthlyInstallment > 0
+    ? Math.ceil(loan.outstandingBalance / loan.monthlyInstallment)
+    : 0;
+
+  const recentTxns = (d?.recentContributions ?? []).map(contributionToTransaction);
 
   return (
     <View style={{ flex: 1 }}>
@@ -102,10 +161,10 @@ export default function MemberDashboard() {
         title="Dashboard"
         onNotifPress={() => router.push('/(member)/notifications' as any)}
       />
-      {isLoading ? (
+      {dataQuery.isLoading ? (
         <DashboardSkeleton />
-      ) : isError ? (
-        <ScreenError onRetry={handleRetry} />
+      ) : dataQuery.isError ? (
+        <ScreenError onRetry={() => dataQuery.refetch()} />
       ) : (
         <ScrollView
           style={{ flex: 1 }}
@@ -116,7 +175,8 @@ export default function MemberDashboard() {
           {/* Greeting */}
           <View style={{ marginBottom: 20 }}>
             <Text style={{ fontFamily: Fonts.playfair, fontSize: 24, color: Colors.white }}>
-              Good Morning, <Text style={{ color: Colors.mint }}>{profileQuery.data?.firstName ?? ''}</Text> 👋
+              {getGreeting()},{' '}
+              <Text style={{ color: Colors.mint }}>{firstName}</Text> 👋
             </Text>
             <Text style={{ fontFamily: Fonts.sans, fontSize: 12, color: Colors.muted, marginTop: 4 }}>
               {today}
@@ -125,7 +185,7 @@ export default function MemberDashboard() {
 
           {/* Stats grid — 2 per row */}
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
-            {(statsQuery.data ?? []).map((s, i) => (
+            {stats.map((s, i) => (
               <View key={i} style={{ width: '47%' }}>
                 <StatCard {...s} />
               </View>
@@ -135,15 +195,26 @@ export default function MemberDashboard() {
           {/* Monthly contributions chart */}
           <Card style={{ marginBottom: 16 }}>
             <CardHeader
-              title="Monthly Contributions (2026)"
+              title={`Monthly Contributions (${new Date().getFullYear()})`}
               actionLabel="View →"
               onAction={() => router.push('/(member)/savings' as any)}
             />
             <CardBody>
-              <ChartBars data={barsQuery.data ?? []} height={100} />
-              <Text style={{ fontFamily: Fonts.sans, fontSize: 11, color: Colors.muted, textAlign: 'right', marginTop: 8 }}>
-                ₦55,000/month · Gold = additional deposit
-              </Text>
+              {d && d.monthlyBars.some((b) => b.heightPct > 0) ? (
+                <>
+                  <ChartBars data={d.monthlyBars} height={100} />
+                  <Text style={{ fontFamily: Fonts.sans, fontSize: 11, color: Colors.muted, textAlign: 'right', marginTop: 8 }}>
+                    Last 12 months · payroll deductions
+                  </Text>
+                </>
+              ) : (
+                <View style={{ alignItems: 'center', paddingVertical: 20, gap: 6 }}>
+                  <Text style={{ fontSize: 28 }}>📊</Text>
+                  <Text style={{ fontFamily: Fonts.sans, fontSize: FontSize.base, color: Colors.muted }}>
+                    No contributions recorded yet
+                  </Text>
+                </View>
+              )}
             </CardBody>
           </Card>
 
@@ -159,31 +230,25 @@ export default function MemberDashboard() {
                 <View style={{ gap: 14 }}>
                   <View>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                      <Text style={{ fontFamily: Fonts.sansSemibold, fontSize: 12, color: Colors.white }}>{loan.type}</Text>
-                      <Text style={{ fontFamily: Fonts.sans, fontSize: 12, color: Colors.muted }}>
-                        {loan.outstanding} / {loan.originalAmount}
+                      <Text style={{ fontFamily: Fonts.sansSemibold, fontSize: 12, color: Colors.white }}>
+                        {loan.loanType}
+                      </Text>
+                      <Text style={{ fontFamily: Fonts.mono, fontSize: 12, color: Colors.muted }}>
+                        {formatNaira(loan.outstandingBalance)} / {formatNaira(loan.amountApproved)}
                       </Text>
                     </View>
-                    <ProgressBar percent={loan.percentRepaid} variant="teal" />
+                    <ProgressBar percent={percentRepaid} variant="teal" />
                     <Text style={{ fontFamily: Fonts.sans, fontSize: 11, color: Colors.muted, marginTop: 4 }}>
-                      {loan.percentRepaid}% repaid · {loan.monthsRemaining} months left
-                    </Text>
-                  </View>
-                  <View>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                      <Text style={{ fontFamily: Fonts.sansSemibold, fontSize: 12, color: Colors.white }}>Loan Eligibility</Text>
-                      <Text style={{ fontFamily: Fonts.sans, fontSize: 12, color: Colors.muted }}>Ready</Text>
-                    </View>
-                    <ProgressBar percent={90} variant="gold" />
-                    <Text style={{ fontFamily: Fonts.sans, fontSize: 11, color: Colors.green2, marginTop: 4 }}>
-                      ✓ 5 years · ✓ {loan.percentRepaid}%+ repaid · ✓ Good standing
+                      {percentRepaid}% repaid · {monthsRemaining} months remaining
                     </Text>
                   </View>
                 </View>
               ) : (
                 <View style={{ alignItems: 'center', paddingVertical: 24, gap: 8 }}>
                   <Text style={{ fontSize: 32 }}>🏦</Text>
-                  <Text style={{ fontFamily: Fonts.sansMedium, fontSize: FontSize.base, color: Colors.muted }}>No active loan</Text>
+                  <Text style={{ fontFamily: Fonts.sansMedium, fontSize: FontSize.base, color: Colors.muted }}>
+                    No active loan
+                  </Text>
                 </View>
               )}
             </CardBody>
@@ -198,7 +263,9 @@ export default function MemberDashboard() {
               ) : (
                 <View style={{ alignItems: 'center', paddingVertical: 24, gap: 8 }}>
                   <Text style={{ fontSize: 32 }}>💳</Text>
-                  <Text style={{ fontFamily: Fonts.sansMedium, fontSize: FontSize.base, color: Colors.muted }}>No transactions yet</Text>
+                  <Text style={{ fontFamily: Fonts.sansMedium, fontSize: FontSize.base, color: Colors.muted }}>
+                    No transactions yet
+                  </Text>
                 </View>
               )}
             </CardBody>

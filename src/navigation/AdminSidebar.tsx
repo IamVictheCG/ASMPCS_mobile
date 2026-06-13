@@ -58,7 +58,9 @@ const SECTIONS: { title: string; items: NavItem[] }[] = [
 
 export function AdminSidebar() {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const { user, displayName, logout } = useAuth();
+  const initials = (displayName ?? '?')
+    .split(' ').map((p) => p[0] ?? '').join('').slice(0, 2).toUpperCase() || '??';
   const { isOpen, closeDrawer } = useDrawer();
 
   const slideAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
@@ -261,11 +263,11 @@ export function AdminSidebar() {
           }}
         >
           <View style={{ width: 36, height: 36, borderRadius: 999, backgroundColor: Colors.crimson, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Text style={{ fontFamily: Fonts.sansSemibold, fontSize: FontSize.sm, color: Colors.white }}>{user?.initials ?? '??'}</Text>
+            <Text style={{ fontFamily: Fonts.sansSemibold, fontSize: FontSize.sm, color: Colors.white }}>{initials}</Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontFamily: Fonts.sansSemibold, fontSize: 12.5, color: Colors.white }}>{user?.name ?? ''}</Text>
-            <Text style={{ fontFamily: Fonts.mono, fontSize: FontSize.xs, color: Colors.muted }}>{user?.roleLabel ?? ''}</Text>
+            <Text style={{ fontFamily: Fonts.sansSemibold, fontSize: 12.5, color: Colors.white }}>{displayName ?? ''}</Text>
+            <Text style={{ fontFamily: Fonts.mono, fontSize: FontSize.xs, color: Colors.muted }}>{(user?.user_metadata as Record<string, unknown> | undefined)?.role_label as string ?? 'Administrator'}</Text>
           </View>
           <TouchableOpacity onPress={logout} activeOpacity={0.7} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Text style={{ fontSize: 16, color: Colors.muted }}>⏻</Text>

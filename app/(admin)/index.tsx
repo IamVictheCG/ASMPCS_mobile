@@ -65,8 +65,8 @@ function AdminDashboardSkeleton() {
 }
 
 export default function AdminDashboard() {
-  const { user } = useAuth();
-  const firstName = user?.name?.split(' ')[0] ?? 'Admin';
+  const { displayName } = useAuth();
+  const firstName = displayName?.split(' ')[0] ?? 'Admin';
   const { stats, quickStats, collectionBars, activityFeed, recentDecisions, loanPipeline } = useAdminStats();
   const insets = useSafeAreaInsets();
 
