@@ -141,6 +141,16 @@ export default function MemberLogin() {
             returnKeyType="go"
           />
 
+          <TouchableOpacity
+            onPress={() => router.push('/forgot-password' as any)}
+            activeOpacity={0.7}
+            style={{ alignSelf: 'flex-end', marginBottom: 16 }}
+          >
+            <Text style={{ fontFamily: Fonts.sans, fontSize: FontSize.md, color: Colors.mint }}>
+              Forgot your password?
+            </Text>
+          </TouchableOpacity>
+
           {error && (
             <View style={{ backgroundColor: 'rgba(192,57,43,0.18)', borderWidth: 1, borderColor: 'rgba(192,57,43,0.35)', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 16 }}>
               <Text style={{ fontFamily: Fonts.sans, fontSize: FontSize.sm, color: '#E88080' }}>{error}</Text>
@@ -156,13 +166,15 @@ export default function MemberLogin() {
           />
 
           <TouchableOpacity
-            onPress={() => router.push('/forgot-password' as any)}
+            onPress={() => router.push('/member-register' as any)}
             activeOpacity={0.7}
             style={{ alignItems: 'center', marginTop: 20 }}
           >
-            <Text style={{ fontFamily: Fonts.sans, fontSize: FontSize.sm, color: Colors.muted }}>
-              Forgot your password?{' '}
-              <Text style={{ color: Colors.mint }}>Reset it here</Text>
+            <Text style={{ fontFamily: Fonts.sans, fontSize: FontSize.md, color: Colors.muted }}>
+              Not a member?{' '}
+              <Text style={{ color: Colors.mint, textDecorationLine: 'underline' }}>
+                Create an account
+              </Text>
             </Text>
           </TouchableOpacity>
         </View>

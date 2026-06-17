@@ -15,7 +15,7 @@ export interface DbMember {
   zone: string | null;
   department: string | null;
   date_joined: string | null;
-  membership_status: 'active' | 'inactive' | 'suspended';
+  membership_status: 'active' | 'inactive' | 'suspended' | 'pending';
   next_of_kin_name: string | null;
   next_of_kin_phone: string | null;
   next_of_kin_relationship: string | null;
@@ -123,10 +123,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const u = data.user;
     const r = deriveRole(u);
+
+    // Fetch member record to check activation status before granting access
+    const m = await fetchMemberRecord(u.id);
+
+    if (m?.membership_status === 'pending') {
+      await supabase.auth.signOut();
+      throw new Error(
+        'Your account is pending activation by the cooperative administrator. ' +
+        'You will be notified when your account is active.'
+      );
+    }
+
+    if (m?.membership_status === 'suspended') {
+      await supabase.auth.signOut();
+      throw new Error(
+        'Your account has been suspended. Please contact the cooperative office.'
+      );
+    }
+
     setUser(u);
     setRole(r);
-    // Fetch member record immediately so setup/dashboard screens have it
-    const m = await fetchMemberRecord(u.id);
     setMember(m);
   }, []);
 
@@ -147,7 +164,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (!data.user) throw new Error('Login failed. Please try again.');
 
-    if (deriveRole(data.user) !== 'admin') {
+    const role = data.user.user_metadata?.role;
+    if (role !== 'admin') {
       await supabase.auth.signOut();
       throw new Error('Not authorised as admin. Contact your system administrator.');
     }
